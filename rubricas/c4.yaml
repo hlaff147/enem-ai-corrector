@@ -1,0 +1,64 @@
+# Competência 4 — Mecanismos linguísticos de argumentação (coesão)
+#
+# ⚠️ VERIFICAR com a cartilha oficial do ano vigente; depois marque verificado: true.
+competencia: C4
+titulo: Demonstrar conhecimento dos mecanismos linguísticos necessários para a construção da argumentação
+fonte: Cartilha do Participante – A Redação no Enem (INEP)
+ano_referencia: 2024
+verificado: false
+
+descricao: >
+  Avalia a articulação entre as partes do texto: uso de conectivos/operadores
+  argumentativos (intra e interparágrafos), referenciação (pronomes,
+  sinônimos, hiperônimos, expressões resumitivas), ausência de repetições
+  excessivas e de inadequações no uso dos recursos coesivos.
+
+niveis:
+  - nota: 200
+    descritor: >
+      Articula bem as partes do texto e apresenta repertório diversificado de
+      recursos coesivos.
+    criterios_operacionais:
+      - Presença expressiva de elementos coesivos intra e interparágrafos.
+      - Raras ou ausentes repetições e inadequações.
+  - nota: 160
+    descritor: >
+      Articula as partes do texto com poucas inadequações e apresenta
+      repertório diversificado de recursos coesivos.
+    criterios_operacionais:
+      - Presença constante de coesivos intra e interparágrafos; poucas repetições/inadequações.
+  - nota: 120
+    descritor: >
+      Articula as partes do texto, de forma mediana, com inadequações, e
+      apresenta repertório pouco diversificado de recursos coesivos.
+    criterios_operacionais:
+      - Presença regular de coesivos; algumas repetições e inadequações.
+  - nota: 80
+    descritor: >
+      Articula as partes do texto, de forma insuficiente, com muitas
+      inadequações, e apresenta repertório limitado de recursos coesivos.
+    criterios_operacionais:
+      - Presença pontual de coesivos; muitas repetições e inadequações.
+  - nota: 40
+    descritor: >
+      Articula as partes do texto de forma precária.
+    criterios_operacionais:
+      - Presença rara de coesivos; excessivas repetições e inadequações.
+  - nota: 0
+    descritor: >
+      Não articula as informações.
+    criterios_operacionais:
+      - Ausência de articulação; ideias justapostas sem relação.
+
+checklist:
+  - Há conectivo/expressão de transição no início dos parágrafos de desenvolvimento e da conclusão?
+  - Os conectivos usados são adequados à relação lógica (adição, oposição, causa, conclusão...)?
+  - Há variedade ou o mesmo conectivo se repete?
+  - Há repetição lexical excessiva (mesma palavra em vez de pronome/sinônimo)?
+  - Os referentes dos pronomes são claros?
+
+erros_comuns:
+  - "Conectivo com valor lógico inadequado (ex. 'portanto' sem relação de conclusão)."
+  - "Excesso de 'além disso' / 'dessa forma' repetidos."
+  - "Pronome 'isso' com referente ambíguo."
+  - "Parágrafos sem nenhum elemento de ligação com o anterior."

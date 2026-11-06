@@ -1,0 +1,72 @@
+# Competência 5 — Proposta de intervenção
+#
+# ⚠️ VERIFICAR com a cartilha oficial do ano vigente; depois marque verificado: true.
+competencia: C5
+titulo: Elaborar proposta de intervenção para o problema abordado, respeitando os direitos humanos
+fonte: Cartilha do Participante – A Redação no Enem (INEP)
+ano_referencia: 2024
+verificado: false
+
+descricao: >
+  Avalia a presença de proposta de intervenção relacionada ao tema e articulada
+  à discussão desenvolvida, considerando seus elementos: AGENTE (quem executa),
+  AÇÃO (o que fazer), MEIO/MODO (como fazer), FINALIDADE/EFEITO (para quê) e
+  DETALHAMENTO (informação adicional sobre algum dos outros elementos).
+  Propostas que desrespeitem os direitos humanos recebem nota 0 nesta competência.
+
+elementos:
+  agente: "Quem executará a ação (ex. Ministério da Educação, escolas, mídia, ONGs, famílias)."
+  acao: "O que deve ser feito para enfrentar o problema."
+  meio: "Como/por meio de que a ação será executada (ex. 'por meio de campanhas...')."
+  finalidade: "Para que / qual o efeito esperado (ex. 'a fim de reduzir...')."
+  detalhamento: "Informação extra que aprofunda qualquer elemento (aposto explicativo, exemplo, especificação)."
+
+niveis:
+  - nota: 200
+    descritor: >
+      Elabora muito bem proposta de intervenção, detalhada, relacionada ao tema
+      e articulada à discussão desenvolvida no texto.
+    criterios_operacionais:
+      - Cinco elementos válidos presentes (agente, ação, meio, finalidade, detalhamento).
+  - nota: 160
+    descritor: >
+      Elabora bem proposta de intervenção relacionada ao tema e articulada à
+      discussão desenvolvida no texto.
+    criterios_operacionais:
+      - Quatro elementos válidos.
+  - nota: 120
+    descritor: >
+      Elabora, de forma mediana, proposta de intervenção relacionada ao tema e
+      articulada à discussão desenvolvida no texto.
+    criterios_operacionais:
+      - Três elementos válidos.
+  - nota: 80
+    descritor: >
+      Elabora, de forma insuficiente, proposta de intervenção relacionada ao
+      tema, ou não articulada com a discussão desenvolvida no texto.
+    criterios_operacionais:
+      - Dois elementos válidos, ou proposta não articulada à discussão.
+  - nota: 40
+    descritor: >
+      Apresenta proposta de intervenção vaga, precária ou relacionada apenas ao
+      assunto.
+    criterios_operacionais:
+      - Um elemento válido, ou proposta relacionada apenas ao assunto.
+  - nota: 0
+    descritor: >
+      Não apresenta proposta de intervenção ou apresenta proposta não
+      relacionada ao tema ou ao assunto.
+    criterios_operacionais:
+      - Sem proposta, proposta sem relação com o tema/assunto, ou proposta que desrespeita os direitos humanos.
+
+orientacoes:
+  - "Elementos genéricos e vazios não contam (ex. agente 'alguém', ação 'fazer algo')."
+  - "Se houver mais de uma proposta, avalie a mais completa."
+  - "Constatações ('é preciso conscientizar') sem agente/ação concretos são vagas."
+  - "Desrespeito aos direitos humanos: incitação à violência, tortura, pena de morte, justiça com as próprias mãos, discriminação, supressão de direitos."
+
+regras_teto:
+  - "A nota é dada pela contagem de elementos válidos: 5→200, 4→160, 3→120, 2→80, 1→40, 0→0 (aplicado pelo consolidador)."
+  - "Proposta não articulada à discussão: no máximo 80."
+  - "Desrespeito aos direitos humanos: 0."
+  - "Tangenciamento do tema (C2): no máximo 40."

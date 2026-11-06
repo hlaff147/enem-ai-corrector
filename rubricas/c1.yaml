@@ -1,0 +1,97 @@
+# Competência 1 — Domínio da modalidade escrita formal da língua portuguesa
+#
+# ⚠️ VERIFICAR: descritores transcritos a partir da Cartilha do Participante
+# "A Redação no Enem" (INEP) e de materiais de formação de corretores.
+# Antes de confiar, confira com a cartilha oficial do ano vigente e, depois,
+# mude `verificado` para true.
+competencia: C1
+titulo: Domínio da modalidade escrita formal da língua portuguesa
+fonte: Cartilha do Participante – A Redação no Enem (INEP)
+ano_referencia: 2024
+verificado: false
+
+descricao: >
+  Avalia a estrutura sintática (construção de períodos e orações) e a presença
+  de desvios gramaticais, de convenções da escrita (ortografia, acentuação,
+  hífen, maiúsculas/minúsculas, separação silábica), de escolha de registro
+  (marcas de oralidade, gírias, informalidade) e de escolha vocabular.
+
+niveis:
+  - nota: 200
+    descritor: >
+      Demonstra excelente domínio da modalidade escrita formal da língua
+      portuguesa e de escolha de registro. Desvios gramaticais ou de convenções
+      da escrita serão aceitos somente como excepcionalidade e quando não
+      caracterizarem reincidência.
+    criterios_operacionais:
+      - Estrutura sintática excelente (no máximo uma falha).
+      - No máximo dois desvios no texto inteiro, sem reincidência.
+  - nota: 160
+    descritor: >
+      Demonstra bom domínio da modalidade escrita formal da língua portuguesa e
+      de escolha de registro, com poucos desvios gramaticais e de convenções da
+      escrita.
+    criterios_operacionais:
+      - Estrutura sintática boa.
+      - Poucos desvios (referência prática de corretores ≈ até 3–4).
+  - nota: 120
+    descritor: >
+      Demonstra domínio mediano da modalidade escrita formal da língua
+      portuguesa e de escolha de registro, com alguns desvios gramaticais e de
+      convenções da escrita.
+    criterios_operacionais:
+      - Estrutura sintática regular, com algumas falhas.
+      - Alguns desvios (referência prática ≈ 5–7).
+  - nota: 80
+    descritor: >
+      Demonstra domínio insuficiente da modalidade escrita formal da língua
+      portuguesa, com muitos desvios gramaticais, de escolha de registro e de
+      convenções da escrita.
+    criterios_operacionais:
+      - Estrutura sintática deficitária (períodos truncados/justapostos frequentes).
+      - Muitos desvios, incluindo marcas de informalidade.
+  - nota: 40
+    descritor: >
+      Demonstra domínio precário da modalidade escrita formal da língua
+      portuguesa, de forma sistemática, com diversificados e frequentes desvios
+      gramaticais, de escolha de registro e de convenções da escrita.
+    criterios_operacionais:
+      - Estrutura sintática precária; desvios sistemáticos e variados.
+  - nota: 0
+    descritor: >
+      Demonstra desconhecimento da modalidade escrita formal da língua
+      portuguesa.
+    criterios_operacionais:
+      - Desvios generalizados que impedem a compreensão do texto.
+
+tipos_desvio:
+  - ortografia
+  - acentuacao
+  - pontuacao
+  - concordancia_verbal
+  - concordancia_nominal
+  - regencia
+  - crase
+  - colocacao_pronominal
+  - paralelismo
+  - registro_informal
+  - escolha_vocabular
+  - estrutura_sintatica   # períodos truncados, justaposição, orações incompletas
+  - maiusculas_minusculas
+  - outro
+
+orientacoes:
+  - Conte desvios por OCORRÊNCIA, mas trate a reincidência do mesmo erro como agravante.
+  - Não penalize variações aceitas pela norma-padrão (ex. vírgula facultativa em adjuntos curtos).
+  - Não confunda escolhas estilísticas legítimas com desvios.
+  - Repetição de palavras é tratada principalmente em C4, não em C1.
+  - Liste apenas desvios que você consiga apontar com trecho literal.
+
+erros_comuns:
+  - "Vírgula separando sujeito e verbo."
+  - "Crase antes de verbo ou de palavra masculina."
+  - "Uso de 'onde' para referentes que não são lugar."
+  - "'Haviam' com sentido de existir (correto: 'havia')."
+  - "'A nível de' (inadequado na norma-padrão)."
+  - "Concordância com sujeito posposto ou distante do verbo."
+  - "Marcas de oralidade: 'pra', 'tá', 'né', 'tipo'."

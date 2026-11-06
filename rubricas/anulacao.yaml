@@ -1,0 +1,46 @@
+# Motivos de anulação (nota zero em todas as competências)
+#
+# ⚠️ VERIFICAR a lista e os limites no edital/cartilha do ano vigente;
+# depois marque verificado: true.
+fonte: Edital do Enem e Cartilha do Participante – A Redação no Enem (INEP)
+ano_referencia: 2024
+verificado: false
+
+limites:
+  linhas_minimas_para_nao_anular: 8   # textos com até 7 linhas são "texto insuficiente"
+  linhas_maximas_consideradas: 30     # a folha oficial tem 30 linhas
+
+motivos:
+  - id: texto_insuficiente
+    descricao: Texto com até 7 linhas (linhas copiadas dos motivadores são desconsideradas na contagem).
+    deteccao: deterministica
+  - id: folha_em_branco
+    descricao: Redação em branco (ou só com o título).
+    deteccao: deterministica
+  - id: fuga_ao_tema
+    descricao: Fuga total ao tema proposto (o texto não trata nem do assunto do tema).
+    deteccao: llm
+  - id: tipo_textual
+    descricao: Não atendimento ao tipo dissertativo-argumentativo (ex. narração, poema, carta, receita).
+    deteccao: llm
+  - id: parte_desconectada
+    descricao: Parte do texto deliberadamente desconectada do tema proposto (ex. trecho de hino, receita, música).
+    deteccao: llm
+  - id: improperios
+    descricao: Impropérios, desenhos, ofensas ou outras formas propositais de anulação.
+    deteccao: llm
+  - id: identificacao
+    descricao: Assinatura, nome, apelido, rubrica ou qualquer marca que identifique o participante no corpo do texto.
+    deteccao: llm
+  - id: lingua_estrangeira
+    descricao: Texto predominantemente ou integralmente escrito em língua estrangeira.
+    deteccao: llm
+  - id: copia_motivadores
+    descricao: Texto composto integral ou predominantemente por cópia dos textos motivadores (as linhas copiadas são desconsideradas; se o restante tiver até 7 linhas, anula).
+    deteccao: deterministica
+
+orientacoes:
+  - A etapa de anulação deve ser CONSERVADORA. Na dúvida, NÃO anule — registre um alerta.
+  - Tangenciamento NÃO é motivo de anulação (é penalizado em C2/C3/C5).
+  - Desrespeito aos direitos humanos NÃO anula a redação desde 2017 — zera apenas a C5.
+  - Citar nomes de autores, pensadores ou personagens NÃO é identificação.

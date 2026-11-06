@@ -1,0 +1,78 @@
+# Competência 2 — Compreensão da proposta, tipo textual e repertório
+#
+# ⚠️ VERIFICAR com a cartilha oficial do ano vigente; depois marque verificado: true.
+competencia: C2
+titulo: Compreender a proposta de redação e aplicar conceitos das várias áreas de conhecimento para desenvolver o tema, dentro dos limites estruturais do texto dissertativo-argumentativo em prosa
+fonte: Cartilha do Participante – A Redação no Enem (INEP)
+ano_referencia: 2024
+verificado: false
+
+descricao: >
+  Avalia três aspectos: (1) abordagem do tema (completo, tangenciamento ou fuga),
+  (2) domínio do tipo textual dissertativo-argumentativo (proposição,
+  argumentação e conclusão) e (3) uso de repertório sociocultural
+  (legitimado, pertinente ao tema e produtivo para a argumentação).
+
+niveis:
+  - nota: 200
+    descritor: >
+      Desenvolve o tema por meio de argumentação consistente, a partir de um
+      repertório sociocultural produtivo, e apresenta excelente domínio do texto
+      dissertativo-argumentativo.
+    criterios_operacionais:
+      - Tema abordado de forma completa.
+      - As três partes (introdução, desenvolvimento, conclusão) completas, nenhuma embrionária.
+      - Repertório legitimado, pertinente e com uso produtivo.
+  - nota: 160
+    descritor: >
+      Desenvolve o tema por meio de argumentação consistente e apresenta bom
+      domínio do texto dissertativo-argumentativo, com proposição,
+      argumentação e conclusão.
+    criterios_operacionais:
+      - Tema completo; três partes presentes (nenhuma embrionária).
+      - Repertório legitimado e pertinente, mas sem uso plenamente produtivo.
+  - nota: 120
+    descritor: >
+      Desenvolve o tema por meio de argumentação previsível e apresenta domínio
+      mediano do texto dissertativo-argumentativo, com proposição,
+      argumentação e conclusão.
+    criterios_operacionais:
+      - Tema completo; três partes, podendo uma delas ser embrionária.
+      - Repertório baseado apenas nos textos motivadores, ou não legitimado, ou não pertinente.
+  - nota: 80
+    descritor: >
+      Desenvolve o tema recorrendo à cópia de trechos dos textos motivadores ou
+      apresenta domínio insuficiente do texto dissertativo-argumentativo, não
+      atendendo à estrutura com proposição, argumentação e conclusão.
+    criterios_operacionais:
+      - Cópia de trechos dos motivadores, ou ausência/embrionismo de partes estruturais.
+  - nota: 40
+    descritor: >
+      Apresenta o assunto, tangenciando o tema, ou demonstra domínio precário do
+      texto dissertativo-argumentativo, com traços constantes de outros tipos
+      textuais.
+    criterios_operacionais:
+      - Tangenciamento do tema (aborda apenas o assunto geral).
+      - Traços constantes de narração/descrição/injunção.
+  - nota: 0
+    descritor: >
+      Fuga ao tema / não atendimento à estrutura dissertativo-argumentativa.
+      Nesses casos a redação é anulada (nota zero em todas as competências).
+    criterios_operacionais:
+      - Situação de anulação — tratada pela etapa de anulação.
+
+conceitos:
+  tema_vs_assunto: >
+    O ASSUNTO é amplo (ex.: "educação"); o TEMA é o recorte específico da
+    proposta (ex.: "desafios para a valorização de comunidades e povos
+    tradicionais no Brasil"). Tangenciar = tratar o assunto sem enfrentar o
+    recorte do tema.
+  repertorio_legitimado: Conhecimento verificável de alguma área (história, filosofia, leis, dados, obras, ciência).
+  repertorio_pertinente: Relacionado ao tema da proposta (não apenas ao assunto).
+  repertorio_produtivo: Articulado à argumentação, não apenas citado ("de bolso"/decorado e solto).
+  parte_embrionaria: Parte presente mas pouco desenvolvida (ex. conclusão de uma frase sem fechamento).
+
+regras_teto:
+  - "Tangenciamento: C2 = 40 e limita C3 e C5 a no máximo 40 (aplicado pelo consolidador)."
+  - "Cópia de trechos dos motivadores: C2 no máximo 80."
+  - "Traços constantes de outros tipos textuais: C2 no máximo 40."

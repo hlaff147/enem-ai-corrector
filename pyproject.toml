@@ -1,0 +1,37 @@
+[project]
+name = "enem-corretor"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "google-adk>=2.13.0",
+    "httpx>=0.28.1",
+    "litellm>=1.106.2",
+    "pydantic>=2.14.3",
+    "python-dotenv>=1.2.4",
+    "pyyaml>=6.0.3",
+]
+
+[project.scripts]
+enem-corretor = "enem_corretor:main"
+
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "coverage>=7.17.2",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.1.post1",
+    "pytest-cov>=7.1.0",
+]
+
+[tool.uv]
+python-preference = "only-system"
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = [".", "src"]
+addopts = "--cov=enem_corretor --cov-report=term-missing --cov-fail-under=90"

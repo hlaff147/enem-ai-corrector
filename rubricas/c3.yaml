@@ -1,0 +1,68 @@
+# Competência 3 — Seleção, organização e interpretação de informações (projeto de texto)
+#
+# ⚠️ VERIFICAR com a cartilha oficial do ano vigente; depois marque verificado: true.
+competencia: C3
+titulo: Selecionar, relacionar, organizar e interpretar informações, fatos, opiniões e argumentos em defesa de um ponto de vista
+fonte: Cartilha do Participante – A Redação no Enem (INEP)
+ano_referencia: 2024
+verificado: false
+
+descricao: >
+  Avalia a inteligibilidade do texto em termos de coerência e o PROJETO DE
+  TEXTO: existência de um ponto de vista (tese) e a seleção, organização,
+  desenvolvimento e interpretação de argumentos em sua defesa. Considera a
+  progressão temática, ausência de contradições e indícios de autoria
+  (argumentos que vão além dos textos motivadores e do senso comum).
+
+niveis:
+  - nota: 200
+    descritor: >
+      Apresenta informações, fatos e opiniões relacionados ao tema proposto, de
+      forma consistente e organizada, configurando autoria, em defesa de um
+      ponto de vista.
+    criterios_operacionais:
+      - Projeto de texto estratégico, argumentos bem desenvolvidos, autoria.
+      - Falhas, se houver, pontuais e que não comprometem a defesa da tese.
+  - nota: 160
+    descritor: >
+      Apresenta informações, fatos e opiniões relacionados ao tema, de forma
+      organizada, com indícios de autoria, em defesa de um ponto de vista.
+    criterios_operacionais:
+      - Projeto de texto claro, com poucas falhas no desenvolvimento.
+  - nota: 120
+    descritor: >
+      Apresenta informações, fatos e opiniões relacionados ao tema, limitados
+      aos argumentos dos textos motivadores e pouco organizados, em defesa de um
+      ponto de vista.
+    criterios_operacionais:
+      - Projeto de texto com falhas; argumentos previsíveis ou pouco desenvolvidos.
+  - nota: 80
+    descritor: >
+      Apresenta informações, fatos e opiniões relacionados ao tema, mas
+      desorganizados ou contraditórios e limitados aos argumentos dos textos
+      motivadores, em defesa de um ponto de vista.
+    criterios_operacionais:
+      - Desorganização, contradições ou argumentos apenas enunciados.
+  - nota: 40
+    descritor: >
+      Apresenta informações, fatos e opiniões pouco relacionados ao tema ou
+      incoerentes e sem defesa de um ponto de vista.
+    criterios_operacionais:
+      - Sem tese identificável ou informações pouco relacionadas ao tema.
+  - nota: 0
+    descritor: >
+      Apresenta informações, fatos e opiniões não relacionados ao tema e sem
+      defesa de um ponto de vista.
+    criterios_operacionais:
+      - Informações sem relação com o tema.
+
+checklist:
+  - Há uma tese (ponto de vista) clara, normalmente na introdução?
+  - Os argumentos são DESENVOLVIDOS (explicados, exemplificados, interpretados) ou apenas enunciados?
+  - Há progressão (cada parágrafo acrescenta algo) ou circularidade/repetição de ideias?
+  - Há contradições internas?
+  - Os argumentos se limitam aos textos motivadores ou ao senso comum?
+  - A conclusão retoma a tese e decorre do desenvolvimento?
+
+regras_teto:
+  - "Se houve tangenciamento do tema (avaliado em C2), C3 fica limitada a 40 (aplicado pelo consolidador)."
