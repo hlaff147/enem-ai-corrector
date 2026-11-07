@@ -44,6 +44,8 @@ class Config:
     """Rodar os agentes C1–C5 em paralelo (desligue para Ollama/limites de taxa)."""
     tentativas_competencia: int
     """Quantas vezes re-executar um agente de competência que falhou."""
+    num_ctx: int
+    """Janela de contexto explícita para modelos locais (Ollama) via LiteLLM."""
 
     # Heurísticas de texto ---------------------------------------------------
     caracteres_por_linha: int
@@ -76,6 +78,7 @@ def carregar_config() -> Config:
         tentativas_modelo=_int("ENEM_TENTATIVAS_MODELO", 4),
         paralelo=_bool("ENEM_PARALELO", True),
         tentativas_competencia=_int("ENEM_TENTATIVAS_COMPETENCIA", 2),
+        num_ctx=_int("ENEM_NUM_CTX", 8192),
         caracteres_por_linha=_int("ENEM_CARACTERES_POR_LINHA", 70),
         linhas_minimas=_int("ENEM_LINHAS_MINIMAS", 8),
         linhas_maximas=_int("ENEM_LINHAS_MAXIMAS", 30),

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Callable
 
 from google.adk.agents.callback_context import CallbackContext
@@ -24,7 +25,10 @@ def construir_modelo(cfg: Config | None = None, modelo_override: BaseLlm | str |
     nome = modelo_override if isinstance(modelo_override, str) and modelo_override else cfg.modelo
 
     if "/" in nome:
-        return LiteLlm(model=nome)
+        kwargs_lite: dict[str, Any] = {}
+        if nome.lower().startswith("ollama"):
+            kwargs_lite["num_ctx"] = cfg.num_ctx
+        return LiteLlm(model=nome, **kwargs_lite)
 
     retry = types.HttpRetryOptions(
         attempts=cfg.tentativas_modelo,
@@ -63,14 +67,33 @@ def instrucao_com_rubrica(nome_prompt: str, nome_rubrica: str | None = None) -> 
     return _provider
 
 
+_TAGS_RESERVADAS_RE = re.compile(
+    r"</?\s*(?:redacao|tema|motivadores|preanalise|avaliacao_consolidada)\b[^>]*>",
+    flags=re.IGNORECASE,
+)
+
+
+def sanitizar_delimitadores_xml(texto: str) -> str:
+    """Escapa tags XML reservadas do sistema caso apareçam dentro do texto do usuário,
+    impedindo escape de bloco (`</redacao>`) em ataques de prompt injection (`ADV-03`)."""
+    return _TAGS_RESERVADAS_RE.sub(
+        lambda m: m.group(0).replace("<", "&lt;").replace(">", "&gt;"),
+        texto or "",
+    )
+
+
 def montar_xml_entrada(state: dict[str, Any], incluir_avaliacao: bool = False) -> str:
     """Delimitadores XML explícitos para isolar os dados do aluno contra prompt injection."""
     entrada = state.get("entrada", {})
     preanalise = state.get("preanalise", {})
-    tema = entrada.get("tema", "")
-    titulo = entrada.get("titulo") or ""
-    motivadores = entrada.get("motivadores") or []
-    redacao_numerada = preanalise.get("redacao_numerada") or entrada.get("redacao", "")
+    tema = sanitizar_delimitadores_xml(str(entrada.get("tema", "")))
+    titulo = sanitizar_delimitadores_xml(str(entrada.get("titulo") or ""))
+    motivadores = [
+        sanitizar_delimitadores_xml(str(m)) for m in (entrada.get("motivadores") or [])
+    ]
+    redacao_numerada = sanitizar_delimitadores_xml(
+        str(preanalise.get("redacao_numerada") or entrada.get("redacao", ""))
+    )
 
     partes = [
         "Avalie a redação abaixo seguindo estritamente sua rubrica e o schema JSON de saída.",

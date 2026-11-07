@@ -117,18 +117,21 @@ def consolidar_avaliacao(
     for comp in COMPETENCIAS:
         chave = f"avaliacao_{comp.lower()}"
         dados_comp: dict[str, Any] | None = state.get(chave)
-        if not dados_comp or not isinstance(dados_comp, dict):
+        if not dados_comp or not isinstance(dados_comp, dict) or "nota" not in dados_comp:
             alertas.append(f"Agente {comp} não retornou avaliação estruturada válida.")
             resultados[comp] = ResultadoCompetencia(
                 competencia=comp,  # type: ignore[arg-type]
-                nota=0,
+                nota=None,
                 nota_modelo=None,
-                ajustes=["Falha na execução do agente da competência."],
-                justificativa="Avaliação indisponível.",
+                incompleta=True,
+                ajustes=["Falha na execução do agente da competência (avaliação incompleta)."],
+                justificativa="Avaliação indisponível por falha técnica do agente.",
             )
             continue
 
         nota_modelo = ajustar_nivel(dados_comp.get("nota", 0))
+        if nota_modelo > 0 and not (dados_comp.get("evidencias") or []):
+            alertas.append(f"{comp}: nota {nota_modelo} atribuída sem trechos em `evidencias`.")
         nota_final = nota_modelo
         ajustes: list[str] = []
 
@@ -207,13 +210,19 @@ def consolidar_avaliacao(
             evidencias_validadas=evidencias_val,
         )
 
-    nota_total = sum(r.nota for r in resultados.values())
+    incompleta = any(r.incompleta or r.nota is None for r in resultados.values())
+    nota_total = (
+        None
+        if incompleta
+        else sum(r.nota for r in resultados.values() if r.nota is not None)
+    )
     fb_raw = state.get("feedback")
     feedback = Feedback.model_validate(fb_raw) if isinstance(fb_raw, dict) else None
 
     return AvaliacaoFinal(
         tema=entrada.get("tema", ""),
         anulada=False,
+        incompleta=incompleta,
         motivos_anulacao=[],
         competencias=resultados,
         nota_total=nota_total,
@@ -232,11 +241,16 @@ def consolidar_avaliacao(
 
 def formatar_relatorio_markdown(av: AvaliacaoFinal) -> str:
     """Gera um relatório legível em Markdown a partir de `AvaliacaoFinal`."""
+    nota_str = (
+        "INCOMPLETA (falha em agente de competência)"
+        if av.incompleta or av.nota_total is None
+        else f"{av.nota_total} / 1000"
+    )
     linhas: list[str] = [
         "# Relatório de Correção — Redação ENEM",
         "",
         f"**Tema:** {av.tema}",
-        f"**Nota Total:** **{av.nota_total} / 1000**",
+        f"**Nota Total:** **{nota_str}**",
         f"**Modelo:** `{av.modelo}`",
     ]
 
@@ -274,7 +288,9 @@ def formatar_relatorio_markdown(av: AvaliacaoFinal) -> str:
         if not rc:
             continue
         aj = "; ".join(rc.ajustes) if rc.ajustes else "—"
-        linhas.append(f"| **{comp}** | **{rc.nota}** | {rc.nota_modelo} | {aj} |")
+        nota_c = "INCOMPLETA" if rc.incompleta or rc.nota is None else str(rc.nota)
+        nota_m = "—" if rc.nota_modelo is None else str(rc.nota_modelo)
+        linhas.append(f"| **{comp}** | **{nota_c}** | {nota_m} | {aj} |")
     linhas.append("")
 
     linhas.append("## Detalhamento por Competência")
@@ -283,7 +299,8 @@ def formatar_relatorio_markdown(av: AvaliacaoFinal) -> str:
         rc = av.competencias.get(comp)
         if not rc:
             continue
-        linhas.append(f"### {comp} — {rc.nota} pontos")
+        rotulo_nota = "INCOMPLETA" if rc.incompleta or rc.nota is None else f"{rc.nota} pontos"
+        linhas.append(f"### {comp} — {rotulo_nota}")
         if rc.justificativa:
             linhas.append(f"**Justificativa:** {rc.justificativa}")
         dados = rc.avaliacao or {}

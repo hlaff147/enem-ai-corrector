@@ -263,3 +263,22 @@ A suíte de testes é dividida em **3 camadas** e exige cobertura mínima de **9
 ```bash
 uv run pytest
 ```
+
+### 6.1. Executar o Runner de Avaliação AES (`enem-corretor-eval`)
+Para avaliar um conjunto de redações em formato `.jsonl` (como `data/exemplos/stress_set_amostra.jsonl`) e calcular automaticamente **QWK com IC95% via bootstrap, MAE, RMSE, viés médio e concordância exata/adjacente**:
+```bash
+uv run enem-corretor-eval \
+  --dataset data/exemplos/stress_set_amostra.jsonl \
+  --out data/execucoes/eval_run
+```
+
+---
+
+## 7. Privacidade, Segurança e Limitações (Apêndice I)
+
+- **Estimativa não oficial:** a nota e o feedback gerados são estimativas automatizadas para apoio pedagógico e podem variar entre execuções; revise resultados importantes com um professor/corretor humano.
+- **Processamento de dados (Cloud vs Local):**
+  - Ao usar `ENEM_MODELO=gemini-...` no **Google AI Studio Free Tier**, o texto da redação é enviado à API do Google (onde, segundo os termos do nível gratuito, prompts e respostas podem ser revisados para melhoria de produtos).
+  - Para **privacidade 100% local** (dados nunca saem da máquina), utilize um modelo via Ollama (`ENEM_MODELO=ollama_chat/qwen2.5:3b`, `ENEM_PARALELO=false`, `ENEM_NUM_CTX=8192`).
+- **Logs locais:** quando `ENEM_SALVAR_EXECUCOES=true`, as execuções são salvas localmente em `data/execucoes/historico.jsonl` (pasta ignorada pelo Git). Defina `ENEM_SALVAR_EXECUCOES=false` no `.env` para desativar a persistência em disco.
+- **Defesa contra Prompt Injection:** todo texto de entrada passa por remoção de caracteres invisíveis de largura zero (`\u200b-\u200d`, `\ufeff`) e sanitização de tags XML reservadas (`</redacao>`, `</tema>`, etc.) antes de ser isolado pelo `before_model_callback`.

@@ -6,9 +6,23 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from pydantic import ValidationError
+
 from enem_corretor.config import _bool, _float, _int, carregar_config
+from enem_corretor.eval.metricas import (
+    bootstrap_ic95,
+    concordancia_adjacente,
+    concordancia_exata,
+    detectar_vazamento,
+    jaccard,
+    mae,
+    qwk,
+    rmse,
+    shingles,
+    vies_medio,
+)
 from enem_corretor.schemas.entrada import EntradaRedacao
-from enem_corretor.schemas.saida import AvaliacaoC1, ajustar_nivel
+from enem_corretor.schemas.saida import AvaliacaoC1, MotivoAnulacao, ResultadoAnulacao, ajustar_nivel
 from enem_corretor.tools.conectivos import analisar_coesao
 from enem_corretor.tools.copia import detectar_copia_motivadores
 from enem_corretor.tools.evidencias import validar_evidencias_competencia, validar_trecho
@@ -61,11 +75,28 @@ def test_schemas_ajustar_nivel_e_validacao():
 
     c1 = AvaliacaoC1(
         analise="ok",
-        nota=158,  # deve ajustar para 160
+        nota=160,
         justificativa="ok",
         estrutura_sintatica="boa",
     )
     assert c1.nota == 160
+
+    # T-01: valores fora de {0,40,80,120,160,200} devem ser rejeitados estritamente
+    for valor_invalido in (150, -40, 240, "invalido", True):
+        with pytest.raises(ValidationError):
+            AvaliacaoC1(
+                analise="ok",
+                nota=valor_invalido,  # type: ignore[arg-type]
+                justificativa="ok",
+                estrutura_sintatica="boa",
+            )
+
+    # T-05: motivo de anulação fora do enum fechado ou anular=True sem motivos é rejeitado
+    with pytest.raises(ValidationError):
+        MotivoAnulacao(motivo="motivo_inventado", evidencia="x", confianca="alta")  # type: ignore[arg-type]
+
+    with pytest.raises(ValidationError):
+        ResultadoAnulacao(analise="x", anular=True, motivos=[])
 
 
 def test_texto_paragrafos_idiomas_e_identificacao():
@@ -179,3 +210,43 @@ def test_rubricas_e_prompts():
         assert len(rubrica_como_texto(nome)) > 100
         assert len(carregar_prompt(nome)) > 100
     assert len(carregar_prompt("feedback")) > 100
+
+
+def test_metricas_aes_qwk_bootstrap_e_vazamento():
+    y_true = [80, 120, 160, 200, 120, 40]
+    y_pred = [80, 120, 120, 200, 160, 40]
+
+    k = qwk(y_true, y_pred)
+    assert 0.7 < k <= 1.0
+    assert mae(y_true, y_pred) > 0
+    assert rmse(y_true, y_pred) > 0
+    assert vies_medio(y_true, y_pred) == 0.0
+    assert concordancia_exata(y_true, y_pred) == round(4 / 6, 4)
+    assert concordancia_adjacente(y_true, y_pred, 40.0) == 1.0
+
+    media, lo, hi = bootstrap_ic95(qwk, y_true, y_pred, n_boot=100, seed=7)
+    assert lo <= media <= hi
+
+    # Casos degenerados
+    import math
+
+    assert math.isnan(qwk([], []))
+    assert math.isnan(qwk([120, 120], [120, 120]))
+    assert math.isnan(mae([], []))
+    assert math.isnan(rmse([], []))
+    assert math.isnan(vies_medio([], []))
+    assert math.isnan(concordancia_exata([], []))
+    assert math.isnan(concordancia_adjacente([], []))
+    assert math.isnan(bootstrap_ic95(qwk, [], [])[0])
+
+    # Detecção de vazamento por shingles
+    golden = {"g1": "um dois tres quatro cinco seis sete oito nove dez"}
+    outros = {
+        "o_igual": "um dois tres quatro cinco seis sete oito nove dez",
+        "o_diferente": "texto totalmente distinto sem palavras em comum aqui agora",
+    }
+    vazamentos = detectar_vazamento(golden, outros, limiar=0.6, k=5)
+    assert len(vazamentos) == 1
+    assert vazamentos[0][0] == "g1" and vazamentos[0][1] == "o_igual"
+    assert shingles("", k=5) == set()
+    assert jaccard(set(), {"a"}) == 0.0

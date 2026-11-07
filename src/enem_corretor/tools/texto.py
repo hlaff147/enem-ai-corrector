@@ -27,8 +27,18 @@ _STOPWORDS_ES = {
 
 
 def normalizar_texto(texto: str) -> str:
-    """Normaliza quebras de linha, espaços e caracteres Unicode."""
+    """Normaliza quebras de linha, espaços, caracteres invisíveis de largura zero e sinais tipográficos."""
     texto = unicodedata.normalize("NFC", texto or "")
+    texto = re.sub(r"[\u200b-\u200d\ufeff]", "", texto)
+    for orig, dest in (
+        ("“", '"'),
+        ("”", '"'),
+        ("‘", "'"),
+        ("’", "'"),
+        ("–", "-"),
+        ("—", "-"),
+    ):
+        texto = texto.replace(orig, dest)
     texto = texto.replace("\r\n", "\n").replace("\r", "\n").replace("\t", " ")
     texto = re.sub(r"[ \u00a0]+", " ", texto)
     texto = "\n".join(linha.strip() for linha in texto.split("\n"))

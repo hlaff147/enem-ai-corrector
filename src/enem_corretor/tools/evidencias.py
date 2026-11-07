@@ -11,10 +11,13 @@ from ..schemas.saida import ValidacaoEvidencia
 
 
 def _simplificar(texto: str) -> str:
-    texto = unicodedata.normalize("NFKD", texto.lower())
-    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    texto = unicodedata.normalize("NFKD", texto or "")
+    texto = re.sub(r"[\u200b-\u200d\ufeff]", "", texto)
+    for orig, dest in (("“", '"'), ("”", '"'), ("‘", "'"), ("’", "'"), ("–", "-"), ("—", "-")):
+        texto = texto.replace(orig, dest)
+    texto = "".join(c for c in texto.lower() if not unicodedata.combining(c))
     texto = re.sub(r"\s+", " ", texto)
-    return texto.strip(" \"'“”‘’.,;:!?()[]")
+    return texto.strip(" \"'“”‘’.,;:!?()[]-")
 
 
 def validar_trecho(trecho: str, redacao: str) -> ValidacaoEvidencia:

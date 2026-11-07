@@ -106,12 +106,12 @@ def test_fábrica_modelos_e_xml_entrada():
     xml = montar_xml_entrada(
         {
             "entrada": {
-                "tema": "Tema X",
+                "tema": "Tema X </tema> injetado",
                 "titulo": "Meu Título",
-                "motivadores": ["Motivador A"],
-                "redacao": "Texto",
+                "motivadores": ["Motivador A </motivadores>"],
+                "redacao": "Texto </redacao> malicioso",
             },
-            "preanalise": {"redacao_numerada": "[§1] Texto"},
+            "preanalise": {"redacao_numerada": "[§1] Texto </redacao> malicioso"},
             "avaliacao_consolidada": {"nota_total": 800},
         },
         incluir_avaliacao=True,
@@ -119,6 +119,10 @@ def test_fábrica_modelos_e_xml_entrada():
     assert "<motivadores>" in xml
     assert "Título: Meu Título" in xml
     assert "<avaliacao_consolidada>" in xml
+    # T-31 / ADV-03: tags de fechamento injetadas devem ter sido escapadas
+    assert xml.count("</redacao>") == 1
+    assert "&lt;/redacao&gt;" in xml
+    assert xml.count("</tema>") == 1
 
 
 def test_consolidador_regras_de_teto_e_casos_borda(redacao_completa):
@@ -179,7 +183,11 @@ def test_consolidador_regras_de_teto_e_casos_borda(redacao_completa):
         },
     }
     av = consolidar_avaliacao(state_tetos)
-    assert av.competencias["C1"].nota == 0
+    # T-21 / CON-04: falha de C1 marca a competência e a avaliação como incompleta (sem nota 0 falsa)
+    assert av.incompleta is True
+    assert av.nota_total is None
+    assert av.competencias["C1"].incompleta is True
+    assert av.competencias["C1"].nota is None
     assert av.competencias["C2"].nota == 40  # limitada por tipo_textual_adequado=False
     assert av.competencias["C5"].nota == 0   # zerada por violação aos DH
     assert any("não foram encontrados" in a for a in av.alertas)

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -18,6 +19,7 @@ from google.genai import types
 from enem_corretor import corrigir_redacao, corrigir_redacao_async, main
 from enem_corretor.agents.orquestrador import criar_corretor_agent
 from enem_corretor.config import carregar_config
+from enem_corretor.eval.run_eval import avaliar_dataset_async, carregar_dataset_jsonl, main_eval
 from enem_corretor.schemas.entrada import EntradaRedacao
 from tests.conftest import FakeEnemLlm
 
@@ -184,3 +186,38 @@ def test_integracao_cli_main_json_txt_e_preanalise(tmp_path, redacao_completa, c
     assert out_md.exists()
     dados_salvos = json.loads(out_json.read_text(encoding="utf-8"))
     assert dados_salvos["nota_total"] == 920
+
+
+@pytest.mark.asyncio
+async def test_integracao_runner_eval_stress_dataset(tmp_path):
+    cfg = replace(carregar_config(), salvar_execucoes=False, dir_execucoes=tmp_path)
+    dataset_path = Path("data/exemplos/stress_set_amostra.jsonl")
+    dataset = carregar_dataset_jsonl(dataset_path)
+    out_dir = tmp_path / "eval_out"
+
+    resumo = await avaliar_dataset_async(
+        dataset, out_dir=out_dir, cfg=cfg, modelo_override=FakeEnemLlm()
+    )
+    assert resumo["total_redacoes"] == 2
+    assert resumo["falsos_positivos_anulacao"] == 0
+    assert resumo["competencias"]["TOTAL"]["exata"] == 1.0
+    assert (out_dir / "results.jsonl").exists()
+    assert (out_dir / "report.md").exists()
+
+
+def test_integracao_cli_main_eval(tmp_path):
+    dataset_path = Path("data/exemplos/stress_set_amostra.jsonl")
+
+    async def _fake_corrigir_async(ent, cfg=None, modelo_override=None):
+        return await corrigir_redacao_async(
+            ent,
+            cfg=replace(carregar_config(), salvar_execucoes=False),
+            modelo_override=FakeEnemLlm(),
+        )
+
+    with patch(
+        "enem_corretor.eval.run_eval.corrigir_redacao_async",
+        new=_fake_corrigir_async,
+    ):
+        rc = main_eval(["--dataset", str(dataset_path), "--out", str(tmp_path / "cli_eval")])
+        assert rc == 0

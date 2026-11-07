@@ -10,23 +10,41 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 NIVEIS = (0, 40, 80, 120, 160, 200)
+NivelNota = Literal[0, 40, 80, 120, 160, 200]
 COMPETENCIAS = ("C1", "C2", "C3", "C4", "C5")
 Competencia = Literal["C1", "C2", "C3", "C4", "C5"]
+MotivoAnulacaoId = Literal[
+    "fuga_ao_tema",
+    "tipo_textual",
+    "parte_desconectada",
+    "improperios",
+    "identificacao",
+    "lingua_estrangeira",
+]
 
 _DESC_NOTA = "Nota da competência. Use SOMENTE um destes valores: 0, 40, 80, 120, 160, 200."
 
 
 def ajustar_nivel(valor: int | float | str) -> int:
-    """Aproxima qualquer número para o nível válido mais próximo (0–200, passo 40)."""
+    """Utilitário para aproximar um número qualquer para o nível oficial mais próximo (0–200, passo 40)."""
     try:
         numero = float(valor)
     except (TypeError, ValueError):
         return 0
     numero = max(0.0, min(200.0, numero))
     return min(NIVEIS, key=lambda nivel: (abs(nivel - numero), nivel))
+
+
+def validar_nivel_estrito(valor: int) -> int:
+    """Valida estritamente que `valor` pertence a `{0, 40, 80, 120, 160, 200}` (`SCH-01`/`R-01`)."""
+    if isinstance(valor, bool) or not isinstance(valor, int) or valor not in NIVEIS:
+        raise ValueError(
+            f"Nota inválida ({valor!r}): deve ser exatamente um de {NIVEIS}."
+        )
+    return valor
 
 
 # ---------------------------------------------------------------------------
@@ -60,7 +78,7 @@ class _AvaliacaoBase(BaseModel):
     @field_validator("nota", mode="before")
     @classmethod
     def _nivel_valido(cls, valor: int) -> int:
-        return ajustar_nivel(valor)
+        return validar_nivel_estrito(valor)
 
 
 # ---------------------------------------------------------------------------
@@ -192,14 +210,16 @@ SCHEMAS_COMPETENCIA: dict[str, type[_AvaliacaoBase]] = {
 
 
 class MotivoAnulacao(BaseModel):
-    motivo: str = Field(
+    motivo: MotivoAnulacaoId = Field(
         description=(
             "Um de: fuga_ao_tema, tipo_textual, parte_desconectada, improperios,"
             " identificacao, lingua_estrangeira."
         )
     )
     evidencia: str = Field(description="Trecho literal ou descrição objetiva.")
-    confianca: str = Field(description="'alta', 'media' ou 'baixa'.")
+    confianca: Literal["alta", "media", "baixa"] = Field(
+        default="alta", description="'alta', 'media' ou 'baixa'."
+    )
 
 
 class ResultadoAnulacao(BaseModel):
@@ -209,6 +229,12 @@ class ResultadoAnulacao(BaseModel):
     alertas: list[str] = Field(
         default_factory=list, description="Situações duvidosas que não justificam anular."
     )
+
+    @model_validator(mode="after")
+    def _validar_motivo_obrigatorio_quando_anular(self) -> ResultadoAnulacao:
+        if self.anular and not self.motivos:
+            raise ValueError("Quando `anular=True`, a lista `motivos` não pode ser vazia.")
+        return self
 
 
 # ---------------------------------------------------------------------------
@@ -253,8 +279,12 @@ class ValidacaoEvidencia(BaseModel):
 
 class ResultadoCompetencia(BaseModel):
     competencia: Competencia
-    nota: int
+    nota: int | None
     nota_modelo: int | None = Field(description="Nota original dada pelo agente LLM.")
+    incompleta: bool = Field(
+        default=False,
+        description="True se o agente da competência falhou e não pôde produzir avaliação.",
+    )
     ajustes: list[str] = Field(default_factory=list, description="Regras aplicadas pelo consolidador.")
     justificativa: str = ""
     avaliacao: dict | None = Field(default=None, description="Saída completa do agente.")
@@ -262,11 +292,16 @@ class ResultadoCompetencia(BaseModel):
 
 
 class AvaliacaoFinal(BaseModel):
+    schema_version: str = "1.1.0"
     tema: str
     anulada: bool
+    incompleta: bool = Field(
+        default=False,
+        description="True se alguma competência não pôde ser avaliada por falha técnica.",
+    )
     motivos_anulacao: list[str] = Field(default_factory=list)
     competencias: dict[str, ResultadoCompetencia] = Field(default_factory=dict)
-    nota_total: int
+    nota_total: int | None
     alertas: list[str] = Field(default_factory=list)
     preanalise: dict = Field(default_factory=dict)
     feedback: Feedback | None = None
