@@ -18,3 +18,4 @@ data/processed/
 data/golden_set/
 data/vectorstore/
 data/execucoes/
+runs/
