@@ -13,41 +13,41 @@ O sistema combina **etapas determinísticas em Python** (para tarefas em que LLM
 
 ```mermaid
 flowchart TD
-    U(["Entrada do Usuário<br/>(Tema + Redação + Motivadores)"]) --> E["Parser de Entrada<br/>(JSON / Marcadores / Texto)"]
-    E --> P["[1] Pré-análise Determinística<br/>(agents/preanalise.py)"]
+    U(["Entrada do Usuário (Tema + Redação + Motivadores)"]) --> E["Parser de Entrada (JSON / Marcadores / Texto)"]
+    E --> P["[1] Pré-análise Determinística (agents/preanalise.py)"]
 
     subgraph Tools["Ferramentas Determinísticas (tools/)"]
-        T1["texto.py<br/>Parágrafos, Períodos e Linhas Estimadas"]
-        T2["copia.py<br/>Detecção de Cópia por 7-gramas"]
-        T3["conectivos.py<br/>Conectivos Intra/Interparágrafos e Repetições"]
-        T4["gramatica.py<br/>Heurísticas PT-BR + LanguageTool opcional"]
+        T1["texto.py: Parágrafos, Períodos e Linhas Estimadas"]
+        T2["copia.py: Detecção de Cópia por 7-gramas"]
+        T3["conectivos.py: Conectivos Intra/Interparágrafos e Repetições"]
+        T4["gramatica.py: Heurísticas PT-BR + LanguageTool opcional"]
     end
 
     P <--> Tools
-    P --> D1{"Anulação<br/>Determinística?<br/>(< 8 linhas / em branco / cópia massiva)"}
+    P --> D1{"Anulação Determinística? (< 8 linhas / em branco / cópia massiva)"}
     D1 -- "Sim (Curto-circuito)" --> Z["Consolidador: Nota 0 + Motivo"]
 
-    D1 -- "Não" --> A2["[2] Agente de Anulação Semântica<br/>(agente_anulacao / ResultadoAnulacao)"]
-    A2 --> D2{"Anular por<br/>Fuga / Tipo Textual /<br/>Impropérios / Identificação?"}
+    D1 -- "Não" --> A2["[2] Agente de Anulação Semântica (agente_anulacao / ResultadoAnulacao)"]
+    A2 --> D2{"Anular por Fuga / Tipo Textual / Impropérios / Identificação?"}
     D2 -- "Sim (Curto-circuito)" --> Z
 
-    D2 -- "Não" --> PAR["[3] Avaliação por Competência<br/>(ParallelAgent ou Sequencial c/ Retry)"]
+    D2 -- "Não" --> PARALLEL["[3] Avaliação por Competência (ParallelAgent ou Sequencial c/ Retry)"]
 
     subgraph Comp["Agentes Especialistas (agents/competencias.py)"]
-        C1["agente_c1<br/>Norma-padrão e Sintaxe<br/>(AvaliacaoC1)"]
-        C2["agente_c2<br/>Tema, Tipo e Repertório<br/>(AvaliacaoC2)"]
-        C3["agente_c3<br/>Projeto de Texto e Argumentos<br/>(AvaliacaoC3)"]
-        C4["agente_c4<br/>Coesão e Conectivos<br/>(AvaliacaoC4)"]
-        C5["agente_c5<br/>Proposta (5 Elementos + DH)<br/>(AvaliacaoC5)"]
+        C1["agente_c1: Norma-padrão e Sintaxe (AvaliacaoC1)"]
+        C2["agente_c2: Tema, Tipo e Repertório (AvaliacaoC2)"]
+        C3["agente_c3: Projeto de Texto e Argumentos (AvaliacaoC3)"]
+        C4["agente_c4: Coesão e Conectivos (AvaliacaoC4)"]
+        C5["agente_c5: Proposta (5 Elementos + DH) (AvaliacaoC5)"]
     end
 
-    PAR --> C1 & C2 & C3 & C4 & C5
-    C1 & C2 & C3 & C4 & C5 --> J["[4] Consolidador / Juiz Determinístico<br/>(agents/consolidador.py)"]
+    PARALLEL --> C1 & C2 & C3 & C4 & C5
+    C1 & C2 & C3 & C4 & C5 --> J["[4] Consolidador / Juiz Determinístico (agents/consolidador.py)"]
 
-    EV["evidencias.py<br/>Validação Literal/Aproximada de Trechos"] --> J
+    EV["evidencias.py: Validação Literal/Aproximada de Trechos"] --> J
 
-    J --> FB["[5] Agente de Feedback Pedagógico<br/>(agente_feedback / Feedback)"]
-    Z --> OUT["[6] Saída Final<br/>(AvaliacaoFinal JSON + Relatório Markdown + JSONL)"]
+    J --> FB["[5] Agente de Feedback Pedagógico (agente_feedback / Feedback)"]
+    Z --> OUT["[6] Saída Final (AvaliacaoFinal JSON + Relatório Markdown + JSONL)"]
     FB --> OUT
 ```
 
@@ -60,40 +60,40 @@ O diagrama abaixo detalha o ciclo de vida de uma correção no `InMemoryRunner` 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Aluno as Estudante (CLI / adk web)
+    actor Aluno as Estudante (CLI ou adk web)
     participant Orq as CorretorEnemAgent
-    participant Pre as Pré-análise & Tools
-    participant Anul as agente_anulacao
-    participant Par as ParallelAgent (C1..C5)
-    participant Cons as Consolidador & Evidências
-    participant Feed as agente_feedback
+    participant Pre as PreAnalise e Tools
+    participant Anul as AgenteAnulacao
+    participant Comp as ParallelAgent (C1 a C5)
+    participant Cons as Consolidador e Evidencias
+    participant Feed as AgenteFeedback
 
     Aluno->>Orq: Envia Tema + Redação (+ Motivadores)
     Orq->>Pre: executar_preanalise(entrada)
     Pre-->>Orq: Estatísticas, linhas, cópia, coesão, alertas C1
     Orq->>Orq: Grava entrada e preanalise no Session State
 
-    alt Anulação Determinística (< 8 linhas ou cópia massiva)
+    alt Anulação Determinística (menos de 8 linhas ou cópia massiva)
         Orq->>Cons: consolidar_avaliacao(state)
         Cons-->>Aluno: Nota 0 + Relatório de Anulação
     else Aprovado na Triagem Determinística
-        Orq->>Anul: run_async(ctx) [XML isolado via callback]
-        Anul-->>Orq: ResultadoAnulacao (output_key="anulacao_llm")
+        Orq->>Anul: run_async(ctx) via XML isolado no callback
+        Anul-->>Orq: ResultadoAnulacao (anulacao_llm)
 
         alt Anulação Semântica (fuga ao tema, tipo textual, etc.)
             Orq->>Cons: consolidar_avaliacao(state)
             Cons-->>Aluno: Nota 0 + Relatório de Anulação
         else Redação Conformante
-            Orq->>Par: Dispara agente_c1 .. agente_c5 em paralelo
-            Par-->>Orq: Grava avaliacao_c1 .. avaliacao_c5 no State
-            opt Alguma competência falhou (rate limit / JSON inválido)
-                Orq->>Par: Re-executa individualmente a competência faltante
+            Orq->>Comp: Dispara agente_c1 a agente_c5 em paralelo
+            Comp-->>Orq: Grava avaliacao_c1 a avaliacao_c5 no State
+            opt Alguma competência falhou (rate limit ou JSON inválido)
+                Orq->>Comp: Re-executa individualmente a competência faltante
             end
             Orq->>Cons: consolidar_avaliacao(state)
             Cons->>Cons: Aplica tetos (tangenciamento, cópia, C5 elementos, DH)
             Cons->>Cons: Valida se trechos citados existem na redação
             Cons-->>Orq: AvaliacaoFinal parcial + avaliacao_consolidada
-            Orq->>Feed: run_async(ctx) [XML + avaliacao_consolidada]
+            Orq->>Feed: run_async(ctx) com avaliacao_consolidada
             Feed-->>Orq: Feedback (prioridades, reescritas, checklist)
             Orq->>Orq: Salva execução em data/execucoes/historico.jsonl
             Orq-->>Aluno: Relatório Markdown + AvaliacaoFinal (JSON)
@@ -123,7 +123,7 @@ flowchart LR
     subgraph C5_Rules["Regras da Competência 5"]
         DH["respeita_direitos_humanos == false"] --> Z5["C5 = 0"]
         NP["proposta_presente == false"] --> Z5
-        EL["Contagem de Elementos Válidos<br/>(agente, acao, meio, finalidade, detalhamento)"] --> N5["Nota C5 = 40 x N_válidos"]
+        EL["Contagem de Elementos Válidos (agente, acao, meio, finalidade, detalhamento)"] --> N5["Nota C5 = 40 x N_válidos"]
         NA["articulada_a_discussao == false"] --> T80["Teto C5 <= 80"]
     end
 ```
@@ -135,18 +135,18 @@ flowchart LR
 ```mermaid
 graph LR
     subgraph Repo["enem-ai-corrector/"]
-        RUB["rubricas/<br/>c1..c5.yaml, anulacao.yaml"]
-        PRM["prompts/<br/>c1..c5.md, anulacao.md, feedback.md"]
+        RUB["rubricas/ (c1..c5.yaml, anulacao.yaml)"]
+        PRM["prompts/ (c1..c5.md, anulacao.md, feedback.md)"]
         SRC["src/enem_corretor/"]
-        TST["tests/<br/>unit/ | component/ | integration/"]
+        TST["tests/ (unit, component, integration)"]
     end
 
     subgraph Pacote["src/enem_corretor/"]
         CFG["config.py"]
-        SCH["schemas/<br/>entrada.py, saida.py"]
-        TLS["tools/<br/>texto, copia, conectivos,<br/>gramatica, evidencias, rubricas"]
-        AGS["agents/<br/>preanalise, anulacao, competencias,<br/>consolidador, feedback, orquestrador"]
-        ENT["agent.py & __init__.py<br/>(root_agent + CLI enem-corretor)"]
+        SCH["schemas/ (entrada.py, saida.py)"]
+        TLS["tools/ (texto, copia, conectivos, gramatica, evidencias, rubricas)"]
+        AGS["agents/ (preanalise, anulacao, competencias, consolidador, feedback, orquestrador)"]
+        ENT["agent.py e __init__.py (root_agent + CLI enem-corretor)"]
     end
 
     RUB --> TLS
