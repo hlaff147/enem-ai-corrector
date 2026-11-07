@@ -1,0 +1,37 @@
+run_id: 2026-11-06_audit-so-codigo_cff413f
+commit: cff413f71e3323605d8b56c3c49373ba0b9cba0f
+dirty: false
+mode: SO-CODIGO
+python: "3.12.16"
+adk_version: "2.13.0"
+litellm_version: "1.106.2"
+pydantic_version: "2.14.3"
+model: "gemini-3.5-flash (config default; no live API key configured)"
+temperature: 0.1
+seed: null
+n_repeats: 3
+hashes:
+  prompts:
+    anulacao.md: 83f4a47aed01e83d2cc0c56d400ad3680bcf1ed7a14e10549cb7983587f8cd3d
+    c1.md: ab3b3ff439b61006a9c9ecabd946e6df93d012968d0dd9077fd8f1519d935769
+    c2.md: 31f672406c97ead8c4eff55fbf5d2376dc66548724c28f97ee2fb78e717b4777
+    c3.md: 6232a0bd7ed39229017dca1017ba8b384adcef000c2f471abcf106d210742928
+    c4.md: 97b9dc5fb5aaf7dc50c3f51eb4495748e58b8363c83cda07860d225c8c0decff
+    c5.md: 7a2e1e4c5e0b65eb928fa834bf31bfbae28c2a26227bbacdc2c3887e189c8574
+    feedback.md: f395f6653838bb3b71887d41e6e3ad91b393bacc3b3293dc6a8e77a860844bb3
+  rubricas:
+    anulacao.yaml: a01991037b8f4c1326b66ee11b4dc2fd906aee850e0062aa44e972b5c523f588
+    c1.yaml: 65da8aa7a6a479530d49dd338c62e85e8477708c011e771f503eee9b98b6f9ca
+    c2.yaml: a51c70cf4aa9ee4cd47090e42a7c962a133785d1e1244e13e478681cfc1f80f8
+    c3.yaml: b705d1a087add25e717349229d3183b35881da2ac17c515437b39234267552b0
+    c4.yaml: 961a64f35d9c747f779d28692df7a0d882695df1d58f9cebf84a09a4599147df
+    c5.yaml: ae44b27db88bff075d4d124e5ec0fd50db5e6207e391a8c055c6a820306120f8
+  golden_set: "ausente (apenas data/exemplos/redacao_exemplo.json: 6f2d40d01bafd9a6ac8af71fa88cd394f48cff751c6bd862e884437129a478b8)"
+  rag_index: "ausente (Fase 3 do roadmap ainda não implementada)"
+hardware:
+  cpu: "Apple M1"
+  ram_gb: 8
+  gpu: "Apple M1 Integrated"
+orcamento:
+  max_chamadas: 0
+  max_tokens: 0
