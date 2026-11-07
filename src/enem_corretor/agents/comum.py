@@ -14,6 +14,7 @@ from google.adk.models.llm_request import LlmRequest
 from google.genai import types
 
 from ..config import Config, carregar_config
+from ..state_keys import StateKeys
 from ..tools.rubricas import carregar_prompt, rubrica_como_texto
 
 
@@ -84,8 +85,8 @@ def sanitizar_delimitadores_xml(texto: str) -> str:
 
 def montar_xml_entrada(state: dict[str, Any], incluir_avaliacao: bool = False) -> str:
     """Delimitadores XML explícitos para isolar os dados do aluno contra prompt injection."""
-    entrada = state.get("entrada", {})
-    preanalise = state.get("preanalise", {})
+    entrada = state.get(StateKeys.ENTRADA, {})
+    preanalise = state.get(StateKeys.PREANALISE, {})
     tema = sanitizar_delimitadores_xml(str(entrada.get("tema", "")))
     titulo = sanitizar_delimitadores_xml(str(entrada.get("titulo") or ""))
     motivadores = [
@@ -115,8 +116,8 @@ def montar_xml_entrada(state: dict[str, Any], incluir_avaliacao: bool = False) -
     cabecalho_titulo = f"Título: {titulo}\n\n" if titulo else ""
     partes.append(f"<redacao>\n{cabecalho_titulo}{redacao_numerada}\n</redacao>")
 
-    if incluir_avaliacao and "avaliacao_consolidada" in state:
-        cons = state["avaliacao_consolidada"]
+    if incluir_avaliacao and StateKeys.AVALIACAO_CONSOLIDADA in state:
+        cons = state[StateKeys.AVALIACAO_CONSOLIDADA]
         partes.append(
             f"<avaliacao_consolidada>\n{json.dumps(cons, ensure_ascii=False, indent=2)}\n</avaliacao_consolidada>"
         )

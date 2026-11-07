@@ -18,6 +18,7 @@ from ..schemas.saida import (
     ResultadoCompetencia,
     ajustar_nivel,
 )
+from ..state_keys import StateKeys, chave_competencia
 from ..tools.evidencias import validar_evidencias_competencia
 from ..tools.rubricas import carregar_rubrica
 
@@ -45,13 +46,13 @@ def consolidar_avaliacao(
     state: dict[str, Any], cfg: Config | None = None
 ) -> AvaliacaoFinal:
     cfg = cfg or carregar_config()
-    entrada = state.get("entrada", {})
-    preanalise = state.get("preanalise", {})
+    entrada = state.get(StateKeys.ENTRADA, {})
+    preanalise = state.get(StateKeys.PREANALISE, {})
     redacao_original = preanalise.get("redacao_normalizada") or entrada.get("redacao", "")
     rubrica_c1 = carregar_rubrica("c1")
 
     motivos_det: list[str] = list(preanalise.get("motivos_anulacao_deterministicos") or [])
-    anulacao_llm: dict[str, Any] = state.get("anulacao_llm") or {}
+    anulacao_llm: dict[str, Any] = state.get(StateKeys.ANULACAO_LLM) or {}
     motivos_llm: list[str] = []
     if anulacao_llm.get("anular"):
         for m in anulacao_llm.get("motivos") or []:
@@ -103,7 +104,7 @@ def consolidar_avaliacao(
             rubrica_verificada=bool(rubrica_c1.get("verificado", False)),
         )
 
-    av_c2: dict[str, Any] = state.get("avaliacao_c2") or {}
+    av_c2: dict[str, Any] = state.get(StateKeys.AVALIACAO_C2) or {}
     tangenciamento = bool(
         av_c2.get("tangenciamento")
         or str(av_c2.get("abordagem_tema", "")).strip().lower() == "tangenciamento"
@@ -115,7 +116,7 @@ def consolidar_avaliacao(
     resultados: dict[str, ResultadoCompetencia] = {}
 
     for comp in COMPETENCIAS:
-        chave = f"avaliacao_{comp.lower()}"
+        chave = chave_competencia(comp)
         dados_comp: dict[str, Any] | None = state.get(chave)
         if not dados_comp or not isinstance(dados_comp, dict) or "nota" not in dados_comp:
             alertas.append(f"Agente {comp} não retornou avaliação estruturada válida.")

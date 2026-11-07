@@ -14,6 +14,11 @@ from .agents.orquestrador import criar_corretor_agent
 from .config import Config, carregar_config
 from .schemas.entrada import EntradaRedacao
 from .schemas.saida import AvaliacaoFinal
+from .state_keys import (
+    StateKeys,
+    obter_avaliacao_final,
+    obter_relatorio_markdown,
+)
 
 # Variável descoberta automaticamente pelo CLI do ADK (`adk web` / `adk run`)
 root_agent = criar_corretor_agent()
@@ -31,7 +36,7 @@ async def corrigir_redacao_async(
     sessao = await runner.session_service.create_session(
         app_name="enem_corretor",
         user_id="estudante",
-        state={"entrada": entrada.model_dump()},
+        state={StateKeys.ENTRADA: entrada.model_dump()},
     )
     msg = types.Content(
         role="user",
@@ -50,8 +55,10 @@ async def corrigir_redacao_async(
         app_name="enem_corretor", user_id="estudante", session_id=sessao.id
     )
     state: dict[str, Any] = sessao_final.state if sessao_final else {}
-    avaliacao = AvaliacaoFinal.model_validate(state["avaliacao_final"])
-    relatorio = str(state.get("relatorio_markdown") or "")
+    avaliacao = obter_avaliacao_final(state)
+    if avaliacao is None:
+        avaliacao = AvaliacaoFinal.model_validate(state.get(StateKeys.AVALIACAO_FINAL, {}))
+    relatorio = obter_relatorio_markdown(state)
     return avaliacao, relatorio
 
 

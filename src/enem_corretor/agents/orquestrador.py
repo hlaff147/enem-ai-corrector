@@ -1,40 +1,46 @@
 """Agente orquestrador customizado (`BaseAgent`) do pipeline de correção ENEM.
 
-Fluxo:
-  [1] Pré-análise determinística (linhas, parágrafos, cópia, coesão, heurísticas C1)
-  [2] Triagem de anulação (determinística + `agente_anulacao`)
-        └─ se anular → encerra imediatamente com nota 0 + motivo
-  [3] Avaliação C1–C5 (via `ParallelAgent` se `cfg.paralelo=True` ou sequencial,
-      com re-tentativa individual caso alguma competência falhe)
-  [4] Consolidador determinístico (regras de teto entre competências + validação
-      de evidências literais)
-  [5] `agente_feedback` (plano de melhoria, reescritas e checklist)
-  [6] Relatório final em Markdown + `avaliacao_final` estruturada no session state
-      + persistência opcional em JSONL (`data/execucoes/historico.jsonl`).
+Hierarquia de Agentes e Coordenadores:
+  [1] Intake & Pré-análise determinística (`executar_preanalise`)
+  [2] `EligibilityCoordinator`:
+        - Gate 1 Determinístico (linhas < 7, em branco, cópia) -> Curto-circuito nota 0
+        - Gate 2 Semântico (`agente_anulacao`) -> Curto-circuito nota 0
+  [3] `CompetencyPanelCoordinator`:
+        - Avaliação C1 a C5 concorrente ou sequencial
+        - Retentativa individual isolada por competência
+  [4] Juiz Consolidador determinístico (`consolidar_avaliacao`)
+  [5] `FeedbackCoordinator`:
+        - Agente de feedback pedagógico condicionado às notas consolidadas
+  [6] Finalizador:
+        - Relatório final em Markdown, schema `AvaliacaoFinal` e persistência opcional.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import warnings
 from typing import Any, AsyncGenerator
 
 from google.adk.agents import BaseAgent, LlmAgent, ParallelAgent
 from google.adk.agents.invocation_context import InvocationContext
 from google.adk.events import Event, EventActions
 from google.adk.models.base_llm import BaseLlm
-from google.adk.utils.context_utils import Aclosing
 from google.genai import types
 from pydantic import PrivateAttr
 
 from ..config import Config, carregar_config
 from ..schemas.entrada import EntradaRedacao
-from ..schemas.saida import COMPETENCIAS, Feedback
-from .anulacao import criar_agente_anulacao
-from .competencias import criar_agentes_competencias
+from ..schemas.saida import AvaliacaoFinal, Feedback
+from ..state_keys import (
+    StateKeys,
+    chaves_reset,
+    obter_entrada,
+    obter_preanalise,
+)
+from .anulacao import EligibilityCoordinator, criar_agente_anulacao
+from .competencias import CompetencyPanelCoordinator, criar_agentes_competencias
 from .consolidador import consolidar_avaliacao, formatar_relatorio_markdown
-from .feedback import criar_agente_feedback
+from .feedback import FeedbackCoordinator, criar_agente_feedback
 from .preanalise import executar_preanalise, extrair_entrada_do_texto
 
 logger = logging.getLogger(__name__)
@@ -69,10 +75,9 @@ class CorretorEnemAgent(BaseAgent):
     """Orquestrador multi-agente de correção de redações do ENEM."""
 
     _cfg: Config = PrivateAttr()
-    _agente_anulacao: LlmAgent = PrivateAttr()
-    _agentes_comp: dict[str, LlmAgent] = PrivateAttr()
-    _parallel_comp: ParallelAgent | None = PrivateAttr(default=None)
-    _agente_feedback: LlmAgent = PrivateAttr()
+    _coordenador_elegibilidade: EligibilityCoordinator = PrivateAttr()
+    _painel_competencias: CompetencyPanelCoordinator = PrivateAttr()
+    _coordenador_feedback: FeedbackCoordinator = PrivateAttr()
 
     def __init__(
         self,
@@ -81,28 +86,21 @@ class CorretorEnemAgent(BaseAgent):
         modelo_override: BaseLlm | str | None = None,
     ) -> None:
         cfg_resolvida = cfg or carregar_config()
-        ag_anulacao = criar_agente_anulacao(cfg_resolvida, modelo_override)
-        ags_comp = criar_agentes_competencias(cfg_resolvida, modelo_override)
-        ag_feedback = criar_agente_feedback(cfg_resolvida, modelo_override)
+        coordenador_elegibilidade = EligibilityCoordinator(
+            cfg=cfg_resolvida, modelo_override=modelo_override
+        )
+        painel_competencias = CompetencyPanelCoordinator(
+            cfg=cfg_resolvida, modelo_override=modelo_override
+        )
+        coordenador_feedback = FeedbackCoordinator(
+            cfg=cfg_resolvida, modelo_override=modelo_override
+        )
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
-            par_comp = (
-                ParallelAgent(
-                    name="avaliadores_competencias",
-                    description="Avalia C1 a C5 em paralelo.",
-                    sub_agents=list(ags_comp.values()),
-                )
-                if cfg_resolvida.paralelo
-                else None
-            )
-
-        sub_agents: list[BaseAgent] = [ag_anulacao]
-        if par_comp is not None:
-            sub_agents.append(par_comp)
-        else:
-            sub_agents.extend(ags_comp.values())
-        sub_agents.append(ag_feedback)
+        sub_agents: list[BaseAgent] = [
+            coordenador_elegibilidade.agente_anulacao,
+            *painel_competencias.obter_sub_agentes(),
+            coordenador_feedback.agente_feedback,
+        ]
 
         super().__init__(
             name=name,
@@ -110,132 +108,95 @@ class CorretorEnemAgent(BaseAgent):
             sub_agents=sub_agents,
         )
         self._cfg = cfg_resolvida
-        self._agente_anulacao = ag_anulacao
-        self._agentes_comp = ags_comp
-        self._parallel_comp = par_comp
-        self._agente_feedback = ag_feedback
+        self._coordenador_elegibilidade = coordenador_elegibilidade
+        self._painel_competencias = painel_competencias
+        self._coordenador_feedback = coordenador_feedback
+
+    @property
+    def _agente_anulacao(self) -> LlmAgent:
+        return self._coordenador_elegibilidade.agente_anulacao
+
+    @property
+    def _agentes_comp(self) -> dict[str, LlmAgent]:
+        return self._painel_competencias.agentes_comp
+
+    @property
+    def _parallel_comp(self) -> ParallelAgent | None:
+        return self._painel_competencias.parallel_comp
+
+    @property
+    def _agente_feedback(self) -> LlmAgent:
+        return self._coordenador_feedback.agente_feedback
+
+    def _encerrar_com_avaliacao(
+        self, ctx: InvocationContext, final: AvaliacaoFinal
+    ) -> Event:
+        """Monta o evento final de resposta e persiste histórico."""
+        relatorio = formatar_relatorio_markdown(final)
+        _salvar_execucao_jsonl(self._cfg, final.model_dump())
+        return Event(
+            author=self.name,
+            invocation_id=ctx.invocation_id,
+            content=types.Content(
+                role="model", parts=[types.Part(text=relatorio)]
+            ),
+            actions=EventActions(
+                state_delta={
+                    StateKeys.AVALIACAO_FINAL: final.model_dump(),
+                    StateKeys.RELATORIO_MARKDOWN: relatorio,
+                }
+            ),
+        )
 
     async def _run_async_impl(
         self, ctx: InvocationContext
     ) -> AsyncGenerator[Event, None]:
         # 1. Entrada e Pré-análise determinística
-        entrada_state = ctx.session.state.get("entrada")
-        if isinstance(entrada_state, dict) and entrada_state.get("redacao"):
-            entrada = EntradaRedacao.model_validate(entrada_state)
-        else:
+        entrada = obter_entrada(ctx.session.state)
+        if entrada is None:
             texto_msg = _extrair_texto_usuario(ctx)
             entrada = extrair_entrada_do_texto(texto_msg)
 
         preanalise = executar_preanalise(entrada, self._cfg)
-        limpar_chaves = {
-            "anulacao_llm": None,
-            "avaliacao_c1": None,
-            "avaliacao_c2": None,
-            "avaliacao_c3": None,
-            "avaliacao_c4": None,
-            "avaliacao_c5": None,
-            "avaliacao_consolidada": None,
-            "feedback": None,
-            "avaliacao_final": None,
-            "relatorio_markdown": None,
-        }
         yield Event(
             author=self.name,
             invocation_id=ctx.invocation_id,
             actions=EventActions(
                 state_delta={
-                    **limpar_chaves,
-                    "entrada": entrada.model_dump(),
-                    "preanalise": preanalise,
+                    **chaves_reset(),
+                    StateKeys.ENTRADA: entrada.model_dump(),
+                    StateKeys.PREANALISE: preanalise,
                 }
             ),
         )
 
-        # 2. Anulação determinística (curto-circuito sem gastar chamadas de LLM)
-        if preanalise["motivos_anulacao_deterministicos"]:
+        # 2. Gate 1: Anulação determinística (curto-circuito sem chamadas de LLM)
+        if self._coordenador_elegibilidade.verificar_anulacao_deterministica(ctx.session.state):
             final = consolidar_avaliacao(ctx.session.state, self._cfg)
-            relatorio = formatar_relatorio_markdown(final)
-            _salvar_execucao_jsonl(self._cfg, final.model_dump())
-            yield Event(
-                author=self.name,
-                invocation_id=ctx.invocation_id,
-                content=types.Content(
-                    role="model", parts=[types.Part(text=relatorio)]
-                ),
-                actions=EventActions(
-                    state_delta={
-                        "avaliacao_final": final.model_dump(),
-                        "relatorio_markdown": relatorio,
-                    }
-                ),
-            )
+            yield self._encerrar_com_avaliacao(ctx, final)
             return
 
-        # 3. Triagem semântica de anulação via LLM
-        try:
-            async with Aclosing(self._agente_anulacao.run_async(ctx)) as agen:
-                async for ev in agen:
-                    yield ev
-        except Exception as exc:
-            logger.warning("Falha no agente de anulação (%s); prosseguindo.", exc)
+        # 3. Gate 2: Triagem semântica de anulação via sub-agente LLM
+        async for ev in self._coordenador_elegibilidade.executar_triagem_semantica(ctx):
+            yield ev
 
-        anulacao_llm = ctx.session.state.get("anulacao_llm") or {}
-        if isinstance(anulacao_llm, dict) and anulacao_llm.get("anular"):
+        if self._coordenador_elegibilidade.verificar_anulacao_semantica(ctx.session.state):
             final = consolidar_avaliacao(ctx.session.state, self._cfg)
-            relatorio = formatar_relatorio_markdown(final)
-            _salvar_execucao_jsonl(self._cfg, final.model_dump())
-            yield Event(
-                author=self.name,
-                invocation_id=ctx.invocation_id,
-                content=types.Content(
-                    role="model", parts=[types.Part(text=relatorio)]
-                ),
-                actions=EventActions(
-                    state_delta={
-                        "avaliacao_final": final.model_dump(),
-                        "relatorio_markdown": relatorio,
-                    }
-                ),
-            )
+            yield self._encerrar_com_avaliacao(ctx, final)
             return
 
-        # 4. Avaliação por competência (C1–C5) em paralelo ou sequencial + fallback
-        if self._parallel_comp is not None:
-            try:
-                async with Aclosing(self._parallel_comp.run_async(ctx)) as agen:
-                    async for ev in agen:
-                        yield ev
-            except Exception as exc:
-                logger.warning(
-                    "Falha parcial na execução paralela (%s); re-tentando competências faltantes.",
-                    exc,
-                )
+        # 4. Avaliação por competência (C1–C5) via painel especialista
+        async for ev in self._painel_competencias.executar_painel_async(ctx):
+            yield ev
 
-        # Re-executa individualmente qualquer competência que não tenha gravado saída válida
-        for comp in COMPETENCIAS:
-            chave = f"avaliacao_{comp.lower()}"
-            ag = self._agentes_comp[comp]
-            for tentativa in range(self._cfg.tentativas_competencia):
-                valor = ctx.session.state.get(chave)
-                if isinstance(valor, dict) and "nota" in valor:
-                    break
-                try:
-                    async with Aclosing(ag.run_async(ctx)) as agen:
-                        async for ev in agen:
-                            yield ev
-                except Exception as exc:
-                    logger.warning(
-                        "Tentativa %d falhou para %s: %s", tentativa + 1, comp, exc
-                    )
-
-        # 5. Consolidação determinística (regras de teto + validação de evidências)
+        # 5. Consolidação determinística (regras de teto + validação de evidências literais)
         parcial = consolidar_avaliacao(ctx.session.state, self._cfg)
         yield Event(
             author=self.name,
             invocation_id=ctx.invocation_id,
             actions=EventActions(
                 state_delta={
-                    "avaliacao_consolidada": {
+                    StateKeys.AVALIACAO_CONSOLIDADA: {
                         "nota_total": parcial.nota_total,
                         "competencias": {
                             k: v.model_dump(exclude={"evidencias_validadas"})
@@ -248,36 +209,15 @@ class CorretorEnemAgent(BaseAgent):
         )
 
         # 6. Agente de Feedback pedagógico
-        try:
-            async with Aclosing(self._agente_feedback.run_async(ctx)) as agen:
-                async for ev in agen:
-                    yield ev
-        except Exception as exc:
-            logger.warning("Falha no agente de feedback (%s); mantendo relatório sem feedback.", exc)
+        async for ev in self._coordenador_feedback.executar_feedback_async(ctx):
+            yield ev
 
-        fb_raw = ctx.session.state.get("feedback")
-        if isinstance(fb_raw, dict):
-            try:
-                parcial.feedback = Feedback.model_validate(fb_raw)
-            except Exception as exc:
-                logger.warning("Feedback inválido ignorado: %s", exc)
+        feedback = self._coordenador_feedback.extrair_feedback(ctx.session.state)
+        if feedback is not None:
+            parcial.feedback = feedback
 
-        relatorio = formatar_relatorio_markdown(parcial)
-        _salvar_execucao_jsonl(self._cfg, parcial.model_dump())
-
-        yield Event(
-            author=self.name,
-            invocation_id=ctx.invocation_id,
-            content=types.Content(
-                role="model", parts=[types.Part(text=relatorio)]
-            ),
-            actions=EventActions(
-                state_delta={
-                    "avaliacao_final": parcial.model_dump(),
-                    "relatorio_markdown": relatorio,
-                }
-            ),
-        )
+        # 7. Finalização e relatório
+        yield self._encerrar_com_avaliacao(ctx, parcial)
 
 
 def criar_corretor_agent(
