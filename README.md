@@ -264,12 +264,18 @@ A suíte de testes é dividida em **3 camadas** e exige cobertura mínima de **9
 uv run pytest
 ```
 
-### 6.1. Executar o Runner de Avaliação AES (`enem-corretor-eval`)
-Para avaliar um conjunto de redações em formato `.jsonl` (como `data/exemplos/stress_set_amostra.jsonl`) e calcular automaticamente **QWK com IC95% via bootstrap, MAE, RMSE, viés médio e concordância exata/adjacente**:
+### 6.1. Executar o Runner de Avaliação AES & Machine Learning (`enem-corretor-eval`)
+Para avaliar um conjunto de redações em formato `.jsonl` (como `data/exemplos/stress_set_amostra.jsonl`) e calcular automaticamente **QWK com IC95% via bootstrap, MAE, RMSE, viés médio, concordância exata/adjacente, F1/F0.5/MCC/Acurácia Balanceada de anulação, Macro-F1/Weighted-F1/Matriz de Confusão por competência, correlações de Pearson/Spearman/R², estudo de ablação do consolidador e taxas de grounding/alucinação** (veja o guia completo em [`docs/metricas-ml-data-science.md`](docs/metricas-ml-data-science.md)):
 ```bash
 uv run enem-corretor-eval \
   --dataset data/exemplos/stress_set_amostra.jsonl \
   --out data/execucoes/eval_run
+```
+Para recalcular métricas a partir de um `results.jsonl` já existente sem novas chamadas de LLM:
+```bash
+uv run enem-corretor-eval \
+  --recalcular-de runs/baseline_refactor/results.jsonl \
+  --out runs/baseline_refactor
 ```
 
 ---

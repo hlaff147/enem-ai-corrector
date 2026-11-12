@@ -10,13 +10,25 @@ from pydantic import ValidationError
 
 from enem_corretor.config import _bool, _float, _int, carregar_config
 from enem_corretor.eval.metricas import (
+    acuracia,
+    acuracia_balanceada,
+    avaliar_qualidade_feedback,
     bootstrap_ic95,
     concordancia_adjacente,
     concordancia_exata,
+    correlacao_pearson,
+    correlacao_spearman,
     detectar_vazamento,
     jaccard,
     mae,
+    matriz_confusao_binaria,
+    mcc_binario,
+    metricas_grounding_evidencias,
+    metricas_multiclasse,
+    percentil,
+    precisao_recall_fbeta,
     qwk,
+    r2_score,
     rmse,
     shingles,
     vies_medio,
@@ -250,3 +262,107 @@ def test_metricas_aes_qwk_bootstrap_e_vazamento():
     assert vazamentos[0][0] == "g1" and vazamentos[0][1] == "o_igual"
     assert shingles("", k=5) == set()
     assert jaccard(set(), {"a"}) == 0.0
+
+
+def test_metricas_ml_classificacao_binaria_e_multiclasse():
+    import math
+
+    # 1. Classificação binária (Elegibilidade / Anulação)
+    yt_bin = [True, True, False, False, False, False]
+    yp_bin = [True, False, False, False, True, False]
+    mc = matriz_confusao_binaria(yt_bin, yp_bin)
+    assert mc == {"tp": 1, "fp": 1, "tn": 3, "fn": 1}
+
+    assert acuracia(yt_bin, yp_bin) == round(4 / 6, 4)
+    # TPR = 1/2 = 0.5, TNR = 3/4 = 0.75 -> Bal Acc = 0.625
+    assert acuracia_balanceada(yt_bin, yp_bin) == 0.625
+
+    prf = precisao_recall_fbeta(yt_bin, yp_bin, beta=0.5)
+    assert prf["precisao"] == 0.5
+    assert prf["recall"] == 0.5
+    assert prf["f1"] == 0.5
+    assert prf["f_beta"] == 0.5
+    assert mcc_binario(yt_bin, yp_bin) == 0.25
+
+    # Casos degenerados / uma única classe
+    assert math.isnan(acuracia([], []))
+    assert math.isnan(acuracia_balanceada([], []))
+    assert acuracia_balanceada([False, False], [False, False]) == 1.0
+    assert math.isnan(precisao_recall_fbeta([], [])["f1"])
+    assert math.isnan(mcc_binario([], []))
+    assert mcc_binario([False, False], [False, False]) == 0.0
+
+    # 2. Classificação multiclasse ordinal (0..200)
+    yt_mc = [80, 120, 160, 200, 160, 200]
+    yp_mc = [80, 120, 120, 200, 160, 200]
+    res_mc = metricas_multiclasse(yt_mc, yp_mc)
+    assert res_mc["acuracia"] == round(5 / 6, 4)
+    assert 0.7 < res_mc["macro_f1"] <= 1.0
+    assert 0.8 < res_mc["weighted_f1"] <= 1.0
+    assert res_mc["por_nivel"]["200"]["f1"] == 1.0
+    assert res_mc["matriz_confusao"]["160"]["120"] == 1
+    assert math.isnan(metricas_multiclasse([], [])["macro_f1"])
+
+
+def test_metricas_ml_correlacao_r2_percentil_e_qualidade_agentes():
+    import math
+
+    yt = [80, 120, 160, 160, 200]
+    yp = [80, 120, 120, 160, 200]
+
+    r = correlacao_pearson(yt, yp)
+    rho = correlacao_spearman(yt, yp)
+    r2 = r2_score(yt, yp)
+    assert 0.85 < r <= 1.0
+    assert 0.85 < rho <= 1.0
+    assert 0.65 < r2 <= 1.0
+
+    assert math.isnan(correlacao_pearson([120], [120]))
+    assert math.isnan(correlacao_pearson([120, 120], [120, 160]))
+    assert math.isnan(correlacao_spearman([120], [120]))
+    assert math.isnan(r2_score([120], [120]))
+    assert math.isnan(r2_score([120, 120], [120, 160]))
+
+    assert percentil([10, 20, 30, 40, 50], 50) == 30.0
+    assert percentil([10, 20, 30, 40], 50) == 25.0
+    assert percentil([42], 95) == 42.0
+    assert math.isnan(percentil([], 50))
+
+    # Grounding de evidências
+    g = metricas_grounding_evidencias({"exata": 3, "aproximada": 1, "nao_encontrada": 1})
+    assert g["total_evidencias"] == 5
+    assert g["taxa_grounding_exato"] == 0.6
+    assert g["taxa_grounding_total"] == 0.8
+    assert g["taxa_alucinacao"] == 0.2
+    assert math.isnan(metricas_grounding_evidencias({})["taxa_alucinacao"])
+
+    # Qualidade do agente de feedback
+    redacao = "A Constituição Federal de 1988 assegura direitos, mas há falhas graves na prática."
+    fb = {
+        "resumo": "Bom texto.",
+        "prioridades": [
+            {"competencia": "C1", "problema": "Desvios", "como_melhorar": "Revisar"},
+            {"competencia": "C2", "problema": "Nenhum", "como_melhorar": "Manter"},
+        ],
+        "reescritas": [
+            {
+                "competencia": "C1",
+                "trecho_original": "A Constituição Federal de 1988 assegura direitos",
+                "sugestao": "A Carta Magna de 1988 garante direitos",
+                "explicacao": "Evita repetição.",
+            },
+            {
+                "competencia": "C3",
+                "trecho_original": "trecho inventado que nao existe no texto original",
+                "sugestao": "...",
+                "explicacao": "...",
+            },
+        ],
+    }
+    notas = {"C1": 120, "C2": 200, "C3": 160, "C4": 200, "C5": 200}
+    q_fb = avaliar_qualidade_feedback(fb, redacao, notas)
+    assert q_fb["presente"] is True
+    assert q_fb["taxa_grounding_reescritas"] == 0.5
+    # Menor nota é 120 (faixa prioritária <= 160: C1 e C3); das prioridades (C1 e C2), 1/2 está alinhada
+    assert q_fb["alinhamento_prioridades"] == 0.5
+    assert avaliar_qualidade_feedback(None, redacao, notas)["presente"] is False

@@ -200,13 +200,23 @@ async def test_integracao_runner_eval_stress_dataset(tmp_path):
     )
     assert resumo["total_redacoes"] == 2
     assert resumo["falsos_positivos_anulacao"] == 0
+    assert resumo["anulacao"]["f1"] == 1.0
+    assert resumo["anulacao"]["f05"] == 1.0
+    assert resumo["anulacao"]["mcc"] == 1.0
+    assert resumo["anulacao"]["acuracia_motivo"] == 1.0
     assert resumo["competencias"]["TOTAL"]["exata"] == 1.0
+    assert resumo["competencias"]["C1"]["macro_f1"] == 1.0
+    assert "ablation_consolidador" in resumo
+    assert resumo["qualidade_agentes"]["taxa_completude"] == 1.0
+    assert resumo["qualidade_agentes"]["grounding_geral"]["taxa_grounding_total"] == 1.0
     assert (out_dir / "results.jsonl").exists()
+    assert (out_dir / "metrics.json").exists()
     assert (out_dir / "report.md").exists()
 
 
 def test_integracao_cli_main_eval(tmp_path):
     dataset_path = Path("data/exemplos/stress_set_amostra.jsonl")
+    out_cli = tmp_path / "cli_eval"
 
     async def _fake_corrigir_async(ent, cfg=None, modelo_override=None):
         return await corrigir_redacao_async(
@@ -219,5 +229,19 @@ def test_integracao_cli_main_eval(tmp_path):
         "enem_corretor.eval.run_eval.corrigir_redacao_async",
         new=_fake_corrigir_async,
     ):
-        rc = main_eval(["--dataset", str(dataset_path), "--out", str(tmp_path / "cli_eval")])
+        rc = main_eval(["--dataset", str(dataset_path), "--out", str(out_cli)])
         assert rc == 0
+
+    # Testa recálculo offline (`--recalcular-de`) sem invocar o LLM
+    out_recalc = tmp_path / "recalc_eval"
+    rc_recalc = main_eval(
+        [
+            "--recalcular-de",
+            str(out_cli / "results.jsonl"),
+            "--out",
+            str(out_recalc),
+        ]
+    )
+    assert rc_recalc == 0
+    assert (out_recalc / "metrics.json").exists()
+    assert (out_recalc / "report.md").exists()
