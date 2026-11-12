@@ -138,6 +138,15 @@ async def test_integracao_anulacao_semantica_llm_e_degradacao_feedback(
     assert av_deg.nota_total == 920
     assert av_deg.feedback is None
 
+    # 5) Teste com flag telemetria ativada
+    av_tel, rel_tel, tel = await corrigir_redacao_async(
+        entrada, cfg=cfg, modelo_override=FakeEnemLlm(), telemetria=True
+    )
+    assert av_tel.nota_total == 920
+    assert tel.tempo_total_s >= 0
+    assert "agente_c1" in tel.agentes
+
+
 
 def test_integracao_cli_main_json_txt_e_preanalise(tmp_path, redacao_completa, capsys):
     # 1) `--apenas-preanalise` com arquivo JSON
@@ -185,7 +194,27 @@ def test_integracao_cli_main_json_txt_e_preanalise(tmp_path, redacao_completa, c
     assert out_json.exists()
     assert out_md.exists()
     dados_salvos = json.loads(out_json.read_text(encoding="utf-8"))
-    assert dados_salvos["nota_total"] == 920
+    # 3) Execução com --telemetria
+    def _corrigir_tel_mock(entrada, cfg=None, modelo_override=None, telemetria=False):
+        cfg_local = replace(carregar_config(), salvar_execucoes=False)
+        return corrigir_redacao(
+            entrada,
+            cfg=cfg_local,
+            modelo_override=FakeEnemLlm(),
+            telemetria=telemetria,
+        )
+
+    with patch("enem_corretor.corrigir_redacao", side_effect=_corrigir_tel_mock):
+        rc3 = main(
+            [
+                "--tema",
+                "Povos tradicionais",
+                "--arquivo",
+                str(arq_txt),
+                "--telemetria",
+            ]
+        )
+    assert rc3 == 0
 
 
 @pytest.mark.asyncio

@@ -39,7 +39,11 @@ def criar_agente_feedback(
         include_contents="none",
         disallow_transfer_to_parent=True,
         disallow_transfer_to_peers=True,
-        before_model_callback=callback_contexto_redacao(incluir_avaliacao=True),
+        before_model_callback=callback_contexto_redacao(
+            incluir_avaliacao=True,
+            competencia=None,
+            checar_curto_circuito_anulacao=False,
+        ),
     )
 
 

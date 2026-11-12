@@ -60,6 +60,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Executa somente a pré-análise determinística (sem chamar LLM).",
     )
     parser.add_argument(
+        "--telemetria",
+        action="store_true",
+        help="Exibe estatísticas de telemetria e uso de tokens por agente ao final.",
+    )
+    parser.add_argument(
         "--saida-json",
         type=Path,
         default=None,
@@ -113,10 +118,18 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(pre_limpo, ensure_ascii=False, indent=2))
         return 0
 
-    avaliacao, relatorio = corrigir_redacao(
-        entrada, modelo_override=args.modelo
-    )
-    print(relatorio)
+    if args.telemetria:
+        avaliacao, relatorio, tel = corrigir_redacao(
+            entrada, modelo_override=args.modelo, telemetria=True
+        )
+        print(relatorio)
+        print("\n--- Telemetria ADK ---")
+        print(json.dumps(tel.para_dict(), ensure_ascii=False, indent=2))
+    else:
+        avaliacao, relatorio = corrigir_redacao(
+            entrada, modelo_override=args.modelo
+        )
+        print(relatorio)
 
     if args.saida_json:
         args.saida_json.parent.mkdir(parents=True, exist_ok=True)

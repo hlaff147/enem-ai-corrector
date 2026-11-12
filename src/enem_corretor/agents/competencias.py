@@ -17,6 +17,7 @@ from ..schemas.saida import COMPETENCIAS, SCHEMAS_COMPETENCIA
 from ..state_keys import chave_competencia, obter_avaliacao_competencia
 from .comum import (
     callback_contexto_redacao,
+    callback_guardrail_nota_competencia,
     construir_generate_config,
     construir_modelo,
     instrucao_com_rubrica,
@@ -55,7 +56,12 @@ def criar_agente_competencia(
         include_contents="none",
         disallow_transfer_to_parent=True,
         disallow_transfer_to_peers=True,
-        before_model_callback=callback_contexto_redacao(incluir_avaliacao=False),
+        before_model_callback=callback_contexto_redacao(
+            incluir_avaliacao=False,
+            competencia=comp,
+            checar_curto_circuito_anulacao=True,
+        ),
+        after_model_callback=callback_guardrail_nota_competencia(comp),
     )
 
 

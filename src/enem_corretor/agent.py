@@ -6,12 +6,14 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from google.adk.apps.app import App
 from google.adk.models.base_llm import BaseLlm
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
 from .agents.orquestrador import criar_corretor_agent
 from .config import Config, carregar_config
+from .plugins.telemetria import EnemTelemetryPlugin, RelatorioTelemetria
 from .schemas.entrada import EntradaRedacao
 from .schemas.saida import AvaliacaoFinal
 from .state_keys import (
@@ -28,11 +30,16 @@ async def corrigir_redacao_async(
     entrada: EntradaRedacao,
     cfg: Config | None = None,
     modelo_override: BaseLlm | str | None = None,
-) -> tuple[AvaliacaoFinal, str]:
-    """Executa o pipeline completo sobre `entrada` e retorna `(AvaliacaoFinal, relatorio_markdown)`."""
+    telemetria: bool = False,
+) -> tuple[AvaliacaoFinal, str] | tuple[AvaliacaoFinal, str, RelatorioTelemetria]:
+    """Executa o pipeline completo sobre `entrada` e retorna `(AvaliacaoFinal, relatorio_markdown)`
+    ou `(AvaliacaoFinal, relatorio_markdown, RelatorioTelemetria)` se `telemetria=True`."""
     cfg = cfg or carregar_config()
     agente = criar_corretor_agent(cfg=cfg, modelo_override=modelo_override)
-    runner = InMemoryRunner(agent=agente, app_name="enem_corretor")
+    plugin_telemetria = EnemTelemetryPlugin() if telemetria else None
+    plugins = [plugin_telemetria] if plugin_telemetria else []
+    app = App(name="enem_corretor", root_agent=agente, plugins=plugins)
+    runner = InMemoryRunner(app=app)
     sessao = await runner.session_service.create_session(
         app_name="enem_corretor",
         user_id="estudante",
@@ -59,6 +66,8 @@ async def corrigir_redacao_async(
     if avaliacao is None:
         avaliacao = AvaliacaoFinal.model_validate(state.get(StateKeys.AVALIACAO_FINAL, {}))
     relatorio = obter_relatorio_markdown(state)
+    if telemetria and plugin_telemetria:
+        return avaliacao, relatorio, plugin_telemetria.relatorio()
     return avaliacao, relatorio
 
 
@@ -66,8 +75,14 @@ def corrigir_redacao(
     entrada: EntradaRedacao,
     cfg: Config | None = None,
     modelo_override: BaseLlm | str | None = None,
-) -> tuple[AvaliacaoFinal, str]:
+    telemetria: bool = False,
+) -> tuple[AvaliacaoFinal, str] | tuple[AvaliacaoFinal, str, RelatorioTelemetria]:
     """Versão síncrona de `corrigir_redacao_async`."""
     return asyncio.run(
-        corrigir_redacao_async(entrada, cfg=cfg, modelo_override=modelo_override)
+        corrigir_redacao_async(
+            entrada,
+            cfg=cfg,
+            modelo_override=modelo_override,
+            telemetria=telemetria,
+        )
     )
